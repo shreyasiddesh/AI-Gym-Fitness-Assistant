@@ -4,8 +4,14 @@ backend/schemas.py – Pydantic request/response schemas for the FastAPI backend
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
+
+GoalType = Literal["lose", "gain", "maintain"]
+ActivityLevelType = Literal["sedentary", "light", "moderate", "active", "very_active"]
+WorkoutType = Literal["strength", "cardio", "flexibility"]
+FitnessLevelType = Literal["beginner", "intermediate", "advanced"]
+PriceTierType = Literal["low", "mid", "high", "none"]
 
 
 # ---------------------------------------------------------------------------
@@ -17,8 +23,8 @@ class UserCreate(BaseModel):
     age: int = Field(ge=10, le=100)
     weight_kg: float = Field(gt=0, le=500)
     height_cm: float = Field(gt=0, le=300)
-    goal: str = "maintain"        # lose | gain | maintain
-    activity_level: str = "moderate"
+    goal: GoalType = "maintain"
+    activity_level: ActivityLevelType = "moderate"
 
 class UserOut(UserCreate):
     id: int
@@ -35,11 +41,11 @@ class WorkoutCreate(BaseModel):
     exercise: str
     reps: int = 0
     duration_sec: int = 0
-    performance_score: float = 0.0
     posture_issues: str = ""
 
 class WorkoutOut(WorkoutCreate):
     id: int
+    performance_score: float
     session_date: datetime
     model_config = {"from_attributes": True}
 
@@ -63,12 +69,12 @@ class DietLogOut(DietLogCreate):
 
 
 class DietPlanRequest(BaseModel):
-    weight_kg: float
-    height_cm: float
-    age: int
+    weight_kg: float = Field(gt=0, le=500)
+    height_cm: float = Field(gt=0, le=300)
+    age: int = Field(ge=10, le=100)
     is_male: bool = True
-    goal: str = "maintain"
-    activity_level: str = "moderate"
+    goal: GoalType = "maintain"
+    activity_level: ActivityLevelType = "moderate"
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +112,7 @@ class ChatResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class IoTRequest(BaseModel):
-    age: int = 25
+    age: int = Field(ge=10, le=100, default=25)
     fitness_level: str = "moderate"
 
 
@@ -115,13 +121,13 @@ class IoTRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 class WorkoutRecommendRequest(BaseModel):
-    goal: str = "maintain"
-    fitness_level: str = "beginner"
-    workout_type: Optional[str] = None
-    max_duration: int = 120
-    top_n: int = 5
+    goal: GoalType = "maintain"
+    fitness_level: FitnessLevelType = "beginner"
+    workout_type: Optional[WorkoutType] = None
+    max_duration: int = Field(ge=10, le=240, default=120)
+    top_n: int = Field(ge=1, le=20, default=5)
 
 class GymRecommendRequest(BaseModel):
-    focus: str = "strength"
-    price_tier: Optional[str] = None
-    top_n: int = 3
+    focus: WorkoutType = "strength"
+    price_tier: Optional[PriceTierType] = None
+    top_n: int = Field(ge=1, le=20, default=3)

@@ -151,3 +151,22 @@ python main.py --mode both
 - The **pose detection** module (`models/pose_detector.py`) is fully implemented and works with a live webcam in a local environment. The Streamlit tab uses a simulation mode for cloud/demo deployments where camera access may be restricted.
 - The **SQLite database** (`fitness_assistant.db`) is created automatically on first run in the project root.
 - All modules work **offline** without any API key.
+
+
+
+cd /d "c:\Users\prash\OneDrive\Desktop\AI-Gym-Fitness-Assistant\AI-Gym-Fitness-Assistant"
+.\.venv\Scripts\activate.bat
+python -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8501
+
+
+>> If stuck:
+netstat -ano | findstr :8501
+taskkill /PID <that_pid> /F
+
+
+#Optional backend (API):
+netstat -ano | findstr :8501
+taskkill /PID <that_pid> /F
+
+
+python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000

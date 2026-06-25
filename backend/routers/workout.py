@@ -1,7 +1,7 @@
 """
 backend/routers/workout.py – Workout session logging and analysis endpoints.
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database.db import get_db
@@ -16,6 +16,10 @@ analyzer = PerformanceAnalyzer()
 @router.post("/log", response_model=WorkoutOut, status_code=201)
 def log_workout(payload: WorkoutCreate, db: Session = Depends(get_db)):
     """Persist a workout session and compute a performance score."""
+    user = db.query(db_models.User).filter(db_models.User.id == payload.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User {payload.user_id} not found")
+
     issues = [i.strip() for i in payload.posture_issues.split(",") if i.strip()]
     score_data = analyzer.score_session(
         exercise=payload.exercise,
@@ -23,8 +27,9 @@ def log_workout(payload: WorkoutCreate, db: Session = Depends(get_db)):
         duration_sec=payload.duration_sec,
         posture_issues=issues,
     )
+    session_data = payload.model_dump()
     session = db_models.WorkoutSession(
-        **payload.model_dump(),
+        **session_data,
         performance_score=score_data["score"],
     )
     db.add(session)
@@ -36,6 +41,10 @@ def log_workout(payload: WorkoutCreate, db: Session = Depends(get_db)):
 @router.get("/user/{user_id}", response_model=list[WorkoutOut])
 def get_user_workouts(user_id: int, db: Session = Depends(get_db)):
     """Return all workout sessions for a user."""
+    user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+
     return (
         db.query(db_models.WorkoutSession)
         .filter(db_models.WorkoutSession.user_id == user_id)
@@ -47,6 +56,10 @@ def get_user_workouts(user_id: int, db: Session = Depends(get_db)):
 @router.get("/progress/{user_id}")
 def get_progress(user_id: int, db: Session = Depends(get_db)):
     """Return weekly progress summary for a user."""
+    user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+
     sessions = (
         db.query(db_models.WorkoutSession)
         .filter(db_models.WorkoutSession.user_id == user_id)

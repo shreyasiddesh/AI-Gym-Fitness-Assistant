@@ -1,7 +1,7 @@
 """
 backend/routers/diet.py – Diet planning and calorie logging endpoints.
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database.db import get_db
@@ -29,6 +29,10 @@ def get_diet_plan(payload: DietPlanRequest):
 @router.post("/log", response_model=DietLogOut, status_code=201)
 def log_meal(payload: DietLogCreate, db: Session = Depends(get_db)):
     """Persist a meal log entry."""
+    user = db.query(db_models.User).filter(db_models.User.id == payload.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User {payload.user_id} not found")
+
     entry = db_models.DietLog(**payload.model_dump())
     db.add(entry)
     db.commit()
@@ -39,6 +43,10 @@ def log_meal(payload: DietLogCreate, db: Session = Depends(get_db)):
 @router.get("/log/{user_id}", response_model=list[DietLogOut])
 def get_diet_logs(user_id: int, db: Session = Depends(get_db)):
     """Return all diet logs for a user."""
+    user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+
     return (
         db.query(db_models.DietLog)
         .filter(db_models.DietLog.user_id == user_id)
